@@ -205,6 +205,18 @@
     color:var(--crema); text-wrap:balance;
     font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
   }
+  /* ── El reproductor ───────────────────────────────────────────────────── */
+  .musica{margin:30px auto 0; max-width:340px; width:100%}
+  .musica iframe{
+    display:block; width:100%; aspect-ratio:16/9; border:0;
+    border-radius:14px; box-shadow:0 16px 40px var(--sombra);
+    background:#000;
+  }
+  .musica p{
+    margin:10px 0 0; font-size:.86rem; letter-spacing:.04em;
+    color:rgba(246,239,227,.6);
+  }
+
   .firma .grande{
     display:block; font-size:clamp(1.3rem, 5.6vw, 1.6rem);
     color:var(--rosa); margin-bottom:10px;
@@ -238,8 +250,8 @@
   <p class="mensaje">
     <span>Hemos compartido muchas aventuras juntos</span>
     <span>y muchos cumpleaños juntos,</span>
-    <span>pero es momento de que podamos ver
-      por una ventana y decir <b class="puntos">…</b></span>
+    <span>pero es momento de que podamos ver por una ventana
+      cuando escuchemos decir <b class="puntos">…</b></span>
   </p>
 
   <div class="marco" id="marco">
@@ -288,9 +300,26 @@
     rev.classList.remove("oculto");
     rev.classList.add("entra");
 
+    ponerCancion();
     soltarCorazones();
     setTimeout(() => rev.scrollIntoView({behavior:"smooth", block:"start"}), 1400);
   });
+
+  // La canción se pone sola al subir la persiana. Va enganchada al toque de la
+  // persona: ningún navegador deja sonar nada sin un gesto previo. Si aun así
+  // el teléfono lo bloquea, el reproductor queda a la vista para tocarlo.
+  const CANCION_ID = "s8hA0QRIwfo";
+  function ponerCancion(){
+    if (!CANCION_ID) return;
+    const caja = document.createElement("div");
+    caja.className = "musica";
+    caja.innerHTML =
+      '<iframe src="https://www.youtube-nocookie.com/embed/' + CANCION_ID +
+      '?autoplay=1&playsinline=1&rel=0&modestbranding=1" ' +
+      'title="Nuestra canción" allow="autoplay; encrypted-media" ' +
+      'allowfullscreen></iframe><p>🔊 Sube el volumen</p>';
+    rev.appendChild(caja);
+  }
 
   // Corazones subiendo, discretos y detrás del contenido. Se respeta a quien
   // pidió menos movimiento en su sistema.
