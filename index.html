@@ -256,16 +256,24 @@
     100%{opacity:0; transform:translateY(-108vh) scale(1.1) rotate(10deg)}
   }
 
-  /* El reproductor: pequeño y abajo, para que se pueda tocar si el teléfono
-     bloqueó el sonido automático. */
+  /* El reproductor no se ve: se saca de la pantalla en lugar de ocultarlo,
+     porque un iframe con display:none deja de sonar en varios navegadores. */
   .musica{
-    position:fixed; left:50%; bottom:10px; transform:translateX(-50%);
-    width:min(210px, 58vw); z-index:5; opacity:.92;
+    position:fixed; left:-9999px; top:0;
+    width:320px; height:180px; pointer-events:none;
   }
-  .musica iframe{
-    display:block; width:100%; aspect-ratio:16/9; border:0;
-    border-radius:12px; box-shadow:0 10px 26px var(--sombra); background:#000;
+
+  /* Plan B: solo aparece si el teléfono bloqueó el sonido automático.
+     Va en una esquina, lejos del botón de la persiana. */
+  .altavoz{
+    position:fixed; top:14px; right:14px; z-index:9;
+    width:46px; height:46px; border-radius:50%; border:0; cursor:pointer;
+    font-size:20px; line-height:1;
+    background:rgba(246,239,227,.94); color:#2A1D05;
+    box-shadow:0 8px 22px var(--sombra);
+    animation:respirar 2.2s ease-in-out infinite;
   }
+  .altavoz:focus-visible{outline:3px solid var(--crema); outline-offset:3px}
 
   @media (prefers-reduced-motion: reduce){
     *{animation-duration:.01ms !important; animation-iteration-count:1 !important;
@@ -368,15 +376,59 @@
   // La canción va enganchada al toque de la foto: ningún navegador deja sonar
   // nada sin un gesto previo. Si aun así lo bloquea, el reproductor queda
   // abajo, a la vista, para tocarlo.
+  let reproductor = null;
+
   function ponerCancion(){
     if (!CANCION_ID || document.querySelector(".musica")) return;
+
     const caja = document.createElement("div");
     caja.className = "musica";
-    caja.innerHTML =
-      '<iframe src="https://www.youtube-nocookie.com/embed/' + CANCION_ID +
-      '?autoplay=1&playsinline=1&rel=0&modestbranding=1" ' +
-      'title="Nuestra canción" allow="autoplay; encrypted-media" allowfullscreen></iframe>';
+    caja.id = "musica";
     document.body.appendChild(caja);
+
+    // Con la API de YouTube se puede saber si de verdad empezó a sonar.
+    const s = document.createElement("script");
+    s.src = "https://www.youtube.com/iframe_api";
+    document.head.appendChild(s);
+
+    window.onYouTubeIframeAPIReady = () => {
+      reproductor = new YT.Player("musica", {
+        videoId: CANCION_ID,
+        playerVars: {autoplay:1, playsinline:1, rel:0, modestbranding:1},
+        events: {
+          onReady: e => e.target.playVideo(),
+          onStateChange: e => {
+            if (e.data === YT.PlayerState.PLAYING) quitarAltavoz();
+          },
+        },
+      });
+    };
+
+    // Si a los 3 segundos no suena, se ofrece el botón para tocarlo.
+    setTimeout(() => {
+      const sonando = reproductor && typeof reproductor.getPlayerState === "function"
+                      && reproductor.getPlayerState() === 1;
+      if (!sonando) mostrarAltavoz();
+    }, 3000);
+  }
+
+  function mostrarAltavoz(){
+    if (document.querySelector(".altavoz")) return;
+    const b = document.createElement("button");
+    b.className = "altavoz";
+    b.type = "button";
+    b.textContent = "🔊";
+    b.title = "Poner la música";
+    b.setAttribute("aria-label", "Poner la música");
+    b.addEventListener("click", () => {
+      if (reproductor && typeof reproductor.playVideo === "function") reproductor.playVideo();
+    });
+    document.body.appendChild(b);
+  }
+
+  function quitarAltavoz(){
+    const b = document.querySelector(".altavoz");
+    if (b) b.remove();
   }
 
   function soltarCorazones(cuantos){
